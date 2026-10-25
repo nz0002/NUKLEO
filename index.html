@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NUKLEO TRAINING · Equipaciones personalizadas para gimnasios y clubes</title>
+<meta name="description" id="md" content="Equipaciones y ropa deportiva personalizada para gimnasios, clubes y deportes de contacto.">
+<link rel="icon" href="/logo.png"><link rel="stylesheet" href="/style.css"></head>
+<body><div id="app"><p class="wrap meta" style="padding-top:40px">Cargando…</p></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="/config.js"></script>
+<script>
+const $=(s,r=document)=>r.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),eur=n=>String(n).replace('.',',');
+const DEF={settings:{brand:'NUKLEO TRAINING',wa:'34608451380',email:'nukleotraining@hotmail.com',logo:'/logo.png',tpl:'Hola, NUKLEO TRAINING. Quiero solicitar un presupuesto.\n\nProducto: {producto}.\nCategoría: {categoria}.\nTécnica: {tecnica}.\nCantidad: {cantidad} unidades.\nPrecio unitario orientativo: {precio} €.\nImporte total estimado: {total} €.{extra}\n\nMe gustaría consultar las opciones disponibles.'},
+ home:{hero:['TU EQUIPO.','TU IDENTIDAD.','TU NÚCLEO.'],sub:'Equipaciones personalizadas para gimnasios, clubes y deportes de contacto.',b1:'VER CATÁLOGO',b2:'PERSONALIZA TU EQUIPO',adv:[['Personalización de equipaciones','Tu logo, tus colores, tu identidad.'],['Tarifas especiales por volumen','Cuantas más unidades, menor precio unitario.'],['Atención directa y personalizada','Hablas con nosotros, sin intermediarios.']],colShow:true,colText:'Próximamente: la colección propia NUKLEO TRAINING.'},
+ delivery:{text:'En NUKLEO TRAINING ofrecemos atención personalizada a gimnasios, clubes y equipos deportivos. Disponemos de entrega en mano en determinadas localidades del sur de Madrid, previa coordinación. Para otras localidades, consulta las opciones de transporte al solicitar tu presupuesto.'},
+ seo:{title:'',desc:''},legal:{text:'Aviso legal, privacidad y cookies: consulta los enlaces del pie de página.'}};
+let D,F={c:'',t:''};
+const quote=(p,q)=>{const t=Number.isInteger(q)&&q>0?D.tiers.find(t=>q>=t.min_qty&&(t.max_qty==null||q<=t.max_qty)):null;if(!t||p.prices[t.id]==null)return null;const u=Number(p.prices[t.id]);return{t,u,total:Math.round(u*q*100)/100}};
+const rng=t=>t.max_qty==null?t.min_qty+' o más':t.min_qty+'–'+t.max_qty,fill=(s,v)=>s.replace(/\{(\w+)\}/g,(_,k)=>k in v?v[k]:'');
+const wa=t=>'https://wa.me/'+D.s.wa.replace(/\D/g,'')+'?text='+encodeURIComponent(t);
+async function load(){
+ const db=supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+ const r=await Promise.all([db.from('categories').select('*').eq('published',true).order('sort_order'),db.from('products').select('*').eq('status','published').order('sort_order'),db.from('price_tiers').select('*').order('min_qty'),db.from('product_prices').select('*'),db.from('product_images').select('*').order('sort_order'),db.from('site_content_published').select('*')]);
+ const bad=r.find(x=>x.error);if(bad)throw bad.error;
+ const [c,p,t,pp,im,sc]=r.map(x=>x.data),K={};sc.forEach(x=>K[x.key]=x.value);
+ const m=k=>({...DEF[k],...(K[k]||{})});
+ p.forEach(x=>{x.prices={};pp.filter(a=>a.product_id===x.id).forEach(a=>x.prices[a.tier_id]=a.unit_price);x.imgs=im.filter(a=>a.product_id===x.id);x.cat=(c.find(a=>a.id===x.category_id)||{}).name||''});
+ D={cats:c,products:p.filter(x=>x.cat),tiers:t,s:m('settings'),h:m('home'),dl:m('delivery'),seo:m('seo'),lg:m('legal')};
+}
+const imgUrl=(db,p)=>p;
+function view(){
+ const s=D.s,h=D.h,prods=D.products,cats=[...new Set(prods.map(p=>p.cat))],techs=[...new Set(prods.map(p=>p.technique))];
+ if(D.seo.title)document.title=D.seo.title;if(D.seo.desc)$('#md').content=D.seo.desc;
+ $('#app').innerHTML=`<header><div class="wrap"><a href="/"><img src="${esc(s.logo||'/logo.png')}" alt="${esc(s.brand)}"></a><nav><a href="#catalogo">Catálogo</a><a href="#equipo">Equipos</a><a href="#entregas">Entregas</a></nav></div></header>
+ <main><div class="hero"><div class="wrap"><h1>${h.hero.map(t=>'<span>'+esc(t)+'</span>').join('')}</h1><p>${esc(h.sub)}</p><div class="btns"><a class="btn" href="#catalogo">${esc(h.b1)}</a><a class="btn o" href="#equipo">${esc(h.b2)}</a></div></div></div>
+ <section><div class="wrap"><div class="adv">${h.adv.map(a=>`<div><b>${esc(a[0])}</b><span>${esc(a[1])}</span></div>`).join('')}</div></div></section>
+ <section id="catalogo"><div class="wrap"><h2>Catálogo</h2><p class="sub">Elige cantidad y solicita presupuesto por WhatsApp.</p><div class="filters"><select id="fc" aria-label="Categoría"><option value="">Todas las categorías</option>${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select><select id="ft" aria-label="Técnica"><option value="">Todas las técnicas</option>${techs.map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div class="grid" id="grid"></div></div></section>
+ ${h.colShow?`<section><div class="wrap"><h2>Colección NUKLEO TRAINING</h2><div class="soon">${esc(h.colText)}</div></div></section>`:''}
+ <section id="equipo"><div class="wrap"><h2>Viste a tu equipo. Crea su identidad.</h2><p class="sub">Cuéntanos qué necesitas. Se abrirá WhatsApp con el mensaje listo para que lo revises y lo envíes tú.</p><form id="form" novalidate><div class="f2">${[['g','Gimnasio o club *'],['p','Persona de contacto *'],['ct','Teléfono o correo (opcional)']].map(x=>`<div><label for="${x[0]}">${x[1]}</label><input id="${x[0]}"><div class="err"></div></div>`).join('')}
+ <div><label for="fp">Producto *</label><select id="fp"><option value="">Selecciona…</option>${prods.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select><div class="err"></div></div><div><label for="q">Cantidad *</label><input id="q" type="number" min="1" inputmode="numeric"><div class="err"></div></div><div><label for="l">Localidad *</label><input id="l"><div class="err"></div></div><div><label for="t">Tallas aproximadas</label><input id="t"></div><div><label for="co">Colores</label><input id="co"></div></div>
+ <div style="margin:14px 0"><label for="d">Descripción del diseño</label><textarea id="d" rows="3"></textarea></div><div style="margin-bottom:14px"><label for="cm">Comentarios adicionales</label><textarea id="cm" rows="2"></textarea></div><button class="btn" type="submit">Preparar mensaje de WhatsApp</button></form></div></section>
+ <section id="entregas"><div class="wrap"><h2>Entregas y zona comercial</h2><p class="sub">${esc(D.dl.text)}</p></div></section></main>
+ <footer><div class="wrap"><b>${esc(s.brand)}</b>${s.email?' · '+esc(s.email):''}<p>Precios orientativos en euros por unidad.</p><p>${esc(D.lg.text)}</p><p><a href="/aviso-legal">Aviso legal</a> · <a href="/privacidad">Privacidad</a> · <a href="/cookies">Cookies</a></p></div></footer>
+ <a class="wa" target="_blank" rel="noopener" href="${wa('Hola, '+s.brand+'. Me gustaría información.')}">WhatsApp</a>
+ <dialog id="dlg"><h3>Revisa tu mensaje</h3><p class="meta">Puedes editarlo. No se envía nada hasta que lo envíes tú desde WhatsApp.</p><textarea id="msg"></textarea><div class="btns" style="margin-top:12px"><a class="btn" id="go" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="btn o" id="cl" type="button">Cerrar</button></div></dialog>`;
+ grid();$('#fc').onchange=e=>{F.c=e.target.value;grid()};$('#ft').onchange=e=>{F.t=e.target.value;grid()};$('#cl').onclick=()=>$('#dlg').close();
+ $('#grid').addEventListener('input',e=>{if(e.target.matches('.n'))calc(e.target.closest('.card'))});
+ $('#grid').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(!b)return;const c=b.closest('.card'),p=D.products.find(x=>x.id==b.dataset.q),q=parseInt($('.n',c).value,10),r=quote(p,q);if(!r){$('.out',c).innerHTML='<span class="warn">Indica una cantidad dentro de la tarifa publicada (desde '+D.tiers[0].min_qty+' unidades).</span>';return}openMsg(msg(p,q,r,''))});
+ $('#form').addEventListener('submit',e=>{e.preventDefault();let ok=true;[['g','Indica el gimnasio o club.'],['p','Indica la persona de contacto.'],['fp','Selecciona un producto.'],['q','Indica una cantidad.'],['l','Indica la localidad.']].forEach(([id,m])=>{const bad=!$('#'+id).value.trim();$('#'+id).parentNode.querySelector('.err').textContent=bad?m:'';if(bad)ok=false});if(!ok)return;
+  const p=D.products.find(x=>x.id==$('#fp').value),q=parseInt($('#q').value,10),r=quote(p,q),L=(k,id)=>$('#'+id).value.trim()?'\n'+k+': '+$('#'+id).value.trim()+'.':'';
+  const ex=L('Gimnasio/club','g')+L('Contacto','p')+L('Teléfono/correo','ct')+L('Localidad','l')+L('Tallas aproximadas','t')+L('Colores','co')+L('Diseño','d')+L('Comentarios','cm');
+  openMsg(r?msg(p,q,r,ex):'Hola, '+D.s.brand+'. Quiero consultar un presupuesto.\n\nProducto: '+p.name+'.\nCantidad: '+q+' unidades (por debajo de la tarifa publicada, desde '+D.tiers[0].min_qty+').'+ex)});
+}
+const msg=(p,q,r,ex)=>fill(D.s.tpl,{producto:p.name,categoria:p.cat,tecnica:p.technique,cantidad:q,precio:eur(r.u),total:eur(r.total),extra:ex});
+function openMsg(t){const m=$('#msg');m.value=t;$('#go').href=wa(t);m.oninput=()=>$('#go').href=wa(m.value);$('#dlg').showModal()}
+function grid(){const l=D.products.filter(p=>(!F.c||p.cat===F.c)&&(!F.t||p.technique===F.t));
+ $('#grid').innerHTML=l.length?l.map(p=>{const im=p.imgs[0];return `<article class="card" data-id="${p.id}"><div class="ph">${im?`<img src="${esc(im.url)}" alt="${esc(im.alt||p.name)}" loading="lazy">`:'Imagen provisional'}</div><h3>${esc(p.name)}</h3><div class="meta">${esc(p.cat)} · ${esc(p.technique)}</div>${p.description?`<div class="meta">${esc(p.description)}</div>`:''}
+ <table><tr><th>Unidades</th><th>€/unidad</th></tr>${D.tiers.map(t=>`<tr data-t="${t.id}"><td>${rng(t)}</td><td>${p.prices[t.id]==null?'—':eur(p.prices[t.id])+' €'}</td></tr>`).join('')}</table>
+ <div style="display:flex;gap:10px;align-items:center"><label style="margin:0" for="n${p.id}">Unidades</label><input class="n" id="n${p.id}" type="number" min="1" inputmode="numeric" value="${D.tiers[0].min_qty}" style="width:96px"></div><div class="out" aria-live="polite"></div><button class="btn" data-q="${p.id}">Solicitar presupuesto</button></article>`}).join(''):'<p class="meta">Ningún producto coincide con los filtros.</p>';
+ document.querySelectorAll('.card').forEach(calc)}
+function calc(c){const p=D.products.find(x=>x.id==c.dataset.id),q=parseInt($('.n',c).value,10),o=$('.out',c);c.querySelectorAll('tr').forEach(r=>r.classList.remove('on'));
+ if(!q||q<1){o.innerHTML='<span class="warn">Indica una cantidad.</span>';return}const r=quote(p,q);if(!r){o.innerHTML='<span class="warn">La tarifa publicada comienza en '+D.tiers[0].min_qty+' unidades.</span>';return}
+ $('tr[data-t="'+r.t.id+'"]',c).classList.add('on');o.innerHTML=q+' × '+eur(r.u)+' € = <span class="tot">'+eur(r.total)+' €</span><div class="meta">Importe total estimado</div>'}
+load().then(view).catch(e=>{console.error(e);$('#app').innerHTML='<p class="wrap meta" style="padding-top:40px">No se pudo cargar el catálogo. Inténtalo de nuevo en unos minutos.</p>'});
+</script></body></html>
